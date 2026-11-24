@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0">
+		<title>Thug Nation: Shadows & Souls</title>
+		<style>
+html, body, #canvas {
+	margin: 0;
+	padding: 0;
+	border: 0;
+}
+
+body {
+	color: white;
+	background-color: black;
+	overflow: hidden;
+	touch-action: none;
+}
+
+#canvas {
+	display: block;
+}
+
+#canvas:focus {
+	outline: none;
+}
+
+#status, #status-splash, #status-progress {
+	position: absolute;
+	left: 0;
+	right: 0;
+}
+
+#status, #status-splash {
+	top: 0;
+	bottom: 0;
+}
+
+#status {
+	background-color: #242424;
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+	align-items: center;
+	visibility: hidden;
+}
+
+#status-splash {
+	max-height: 100%;
+	max-width: 100%;
+	margin: auto;
+}
+
+#status-progress, #status-notice {
+	display: none;
+}
+
+#status-progress {
+	bottom: 10%;
+	width: 50%;
+	margin: 0 auto;
+}
+
+#status-notice {
+	background-color: #5b3943;
+	border-radius: 0.5rem;
+	border: 1px solid #9b3943;
+	color: #e0e0e0;
+	font-family: 'Noto Sans', 'Droid Sans', Arial, sans-serif;
+	line-height: 1.3;
+	margin: 0 2rem;
+	overflow: hidden;
+	padding: 1rem;
+	text-align: center;
+	z-index: 1;
+}
+		</style>
+		<link id="-gd-engine-icon" rel="icon" type="image/png" href="index.icon.png" />
+<link rel="apple-touch-icon" href="index.apple-touch-icon.png"/>
+
+	
+<style>
+#tn-touch{position:fixed;inset:0;z-index:10;pointer-events:none;font-family:Arial,sans-serif;-webkit-user-select:none;user-select:none}
+#tn-touch.hidden{display:none}
+.tn-cluster{position:absolute;bottom:14px;display:flex;gap:10px;pointer-events:none}
+.tn-left{left:14px;flex-direction:column;align-items:center}
+.tn-right{right:14px;flex-direction:column;align-items:flex-end}
+.tn-row{display:flex;gap:10px}
+.tn-btn{pointer-events:auto;width:64px;height:64px;border-radius:50%;border:2px solid rgba(255,255,255,.65);
+ background:rgba(20,20,30,.45);color:#fff;font-size:15px;font-weight:bold;text-align:center;line-height:1.1;
+ display:flex;align-items:center;justify-content:center;touch-action:none}
+.tn-btn.small{width:52px;height:52px;font-size:12px}
+.tn-btn:active,.tn-btn.pressed{background:rgba(255,200,60,.75);color:#111}
+.tn-top{position:absolute;top:10px;right:10px;display:flex;gap:8px;pointer-events:none}
+.tn-pill{pointer-events:auto;height:34px;padding:0 12px;border-radius:17px;border:1px solid rgba(255,255,255,.5);
+ background:rgba(20,20,30,.55);color:#fff;font-size:12px;touch-action:none}
+#tn-show{position:fixed;top:10px;right:10px;z-index:11;display:none;height:34px;padding:0 12px;border-radius:17px;
+ border:1px solid rgba(255,255,255,.5);background:rgba(20,20,30,.55);color:#fff;font-size:12px}
+#tn-hint{position:absolute;left:50%;bottom:16px;transform:translateX(-50%);color:rgba(255,255,255,.55);
+ font-size:11px;pointer-events:none;text-align:center}
+@media (max-width:700px){.tn-btn{width:56px;height:56px;font-size:13px}.tn-btn.small{width:46px;height:46px}}
+</style>
+</head>
+	<body>
+		<canvas id="canvas">
+			Your browser does not support the canvas tag.
+		</canvas>
+
+		<noscript>
+			Your browser does not support JavaScript.
+		</noscript>
+
+		<div id="status">
+			<img id="status-splash" src="index.png" alt="">
+			<progress id="status-progress"></progress>
+			<div id="status-notice"></div>
+		</div>
+
+		<script src="index.js"></script>
+		<script>
+const GODOT_CONFIG = {"args":[],"canvasResizePolicy":2,"ensureCrossOriginIsolationHeaders":true,"executable":"index","mainPack":"index.pck","experimentalVK":false,"fileSizes":{"index.pck":32016,"index.wasm":35376909},"focusCanvas":true,"gdextensionLibs":[]};
+const GODOT_THREADS_ENABLED = false;
+const engine = new Engine(GODOT_CONFIG);
+
+(function () {
+	const statusOverlay = document.getElementById('status');
+	const statusProgress = document.getElementById('status-progress');
+	const statusNotice = document.getElementById('status-notice');
+
+	let initializing = true;
+	let statusMode = '';
+
+	function setStatusMode(mode) {
+		if (statusMode === mode || !initializing) {
+			return;
+		}
+		if (mode === 'hidden') {
+			statusOverlay.remove();
+			initializing = false;
+			return;
+		}
+		statusOverlay.style.visibility = 'visible';
+		statusProgress.style.display = mode === 'progress' ? 'block' : 'none';
+		statusNotice.style.display = mode === 'notice' ? 'block' : 'none';
+		statusMode = mode;
+	}
+
+	function setStatusNotice(text) {
+		while (statusNotice.lastChild) {
+			statusNotice.removeChild(statusNotice.lastChild);
+		}
+		const lines = text.split('\n');
+		lines.forEach((line) => {
+			statusNotice.appendChild(document.createTextNode(line));
+			statusNotice.appendChild(document.createElement('br'));
+		});
+	}
+
+	function displayFailureNotice(err) {
+		console.error(err);
+		if (err instanceof Error) {
+			setStatusNotice(err.message);
+		} else if (typeof err === 'string') {
+			setStatusNotice(err);
+		} else {
+			setStatusNotice('An unknown error occured');
+		}
+		setStatusMode('notice');
+		initializing = false;
+	}
+
+	const missing = Engine.getMissingFeatures({
+		threads: GODOT_THREADS_ENABLED,
+	});
+
+	if (missing.length !== 0) {
+		if (GODOT_CONFIG['serviceWorker'] && GODOT_CONFIG['ensureCrossOriginIsolationHeaders'] && 'serviceWorker' in navigator) {
+			// There's a chance that installing the service worker would fix the issue
+			Promise.race([
+				navigator.serviceWorker.getRegistration().then((registration) => {
+					if (registration != null) {
+						return Promise.reject(new Error('Service worker already exists.'));
+					}
+					return registration;
+				}).then(() => engine.installServiceWorker()),
+				// For some reason, `getRegistration()` can stall
+				new Promise((resolve) => {
+					setTimeout(() => resolve(), 2000);
+				}),
+			]).catch((err) => {
+				console.error('Error while registering service worker:', err);
+			}).then(() => {
+				window.location.reload();
+			});
+		} else {
+			// Display the message as usual
+			const missingMsg = 'Error\nThe following features required to run Godot projects on the Web are missing:\n';
+			displayFailureNotice(missingMsg + missing.join('\n'));
+		}
+	} else {
+		setStatusMode('progress');
+		engine.startGame({
+			'onProgress': function (current, total) {
+				if (current > 0 && total > 0) {
+					statusProgress.value = current;
+					statusProgress.max = total;
+				} else {
+					statusProgress.removeAttribute('value');
+					statusProgress.removeAttribute('max');
+				}
+			},
+		}).then(() => {
+			setStatusMode('hidden');
+		}, displayFailureNotice);
+	}
+}());
+		</script>
+	
+<button id="tn-show">🎮 Controls</button>
+<div id="tn-touch">
+  <div class="tn-top">
+    <button class="tn-pill" data-tn-key="Enter" data-tn-tap="1">↻ REMATCH</button>
+    <button class="tn-pill" id="tn-hide">HIDE ✕</button>
+  </div>
+  <div class="tn-cluster tn-left">
+    <div class="tn-row"><button class="tn-btn" data-tn-key="KeyW">▲</button></div>
+    <div class="tn-row">
+      <button class="tn-btn" data-tn-key="KeyA">◀</button>
+      <button class="tn-btn" data-tn-key="KeyS">▼</button>
+      <button class="tn-btn" data-tn-key="KeyD">▶</button>
+    </div>
+  </div>
+  <div class="tn-cluster tn-right">
+    <div class="tn-row">
+      <button class="tn-btn small" data-tn-key="ShiftLeft">BLOCK</button>
+      <button class="tn-btn small" data-tn-key="KeyR">AURA</button>
+      <button class="tn-btn small" data-tn-key="Space">JUMP</button>
+    </div>
+    <div class="tn-row">
+      <button class="tn-btn" data-tn-key="KeyJ">LIGHT</button>
+      <button class="tn-btn" data-tn-key="KeyK">HEAVY</button>
+      <button class="tn-btn" data-tn-key="KeyL" style="font-size:12px">GRAPPLE</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  var canvas = document.getElementById('canvas');
+  var KEY_NAMES = {KeyW:'w',KeyA:'a',KeyS:'s',KeyD:'d',Space:' ',KeyJ:'j',KeyK:'k',KeyL:'l',ShiftLeft:'Shift',KeyR:'r',Enter:'Enter'};
+  function sendKey(code, down){
+    var ev = new KeyboardEvent(down ? 'keydown' : 'keyup', {
+      code: code, key: KEY_NAMES[code] || code, bubbles: true, cancelable: true, composed: true
+    });
+    window.__tnLastKey = code + (down ? ' down' : ' up');
+    if (canvas) { try { canvas.focus(); } catch(e){} canvas.dispatchEvent(ev); }
+    window.dispatchEvent(ev);
+    document.dispatchEvent(ev);
+  }
+  document.querySelectorAll('[data-tn-key]').forEach(function(btn){
+    var code = btn.getAttribute('data-tn-key');
+    var tap = btn.getAttribute('data-tn-tap') === '1';
+    function down(e){ e.preventDefault(); btn.classList.add('pressed'); sendKey(code, true);
+      if (tap) { setTimeout(function(){ btn.classList.remove('pressed'); sendKey(code, false); }, 150); } }
+    function up(e){ e.preventDefault(); btn.classList.remove('pressed'); if (!tap) sendKey(code, false); }
+    btn.addEventListener('pointerdown', down);
+    btn.addEventListener('pointerup', up);
+    btn.addEventListener('pointercancel', up);
+    btn.addEventListener('pointerleave', up);
+    btn.addEventListener('contextmenu', function(e){ e.preventDefault(); });
+  });
+  var overlay = document.getElementById('tn-touch');
+  var showBtn = document.getElementById('tn-show');
+  document.getElementById('tn-hide').addEventListener('click', function(){
+    overlay.classList.add('hidden'); showBtn.style.display = 'block';
+  });
+  showBtn.addEventListener('click', function(){
+    overlay.classList.remove('hidden'); showBtn.style.display = 'none';
+  });
+})();
+</script>
+</body>
+</html>
+
