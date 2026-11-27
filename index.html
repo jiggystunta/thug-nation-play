@@ -1,4 +1,23 @@
 <!DOCTYPE html>
+<!-- Thug Nation custom web shell (game/web-shell.html).
+     WHY IT EXISTS: the game is designed for a fixed 1280x720 landscape
+     viewport (HUD, select screens and the 2D arena all use fixed 1280x720
+     coordinates). With the default canvas resize policy ("Project") the
+     Godot viewport resized to the browser window, so on a portrait phone
+     (390x844) the P2 health bar, the pause button and both 2D fighters
+     landed off-screen and the 2D fighters were invisible. This shell pins
+     the canvas to 1280x720 (width/height attributes below) and letterboxes
+     it with CSS (aspect preserved, centered), so the game renders exactly
+     as designed on any screen. Requires export preset
+     html/canvas_resize_policy=0 ("None") — Godot then does no resizing
+     and the attributes + CSS control the size (see Godot docs,
+     "Custom HTML page for Web export" / "Exporting for the Web").
+     The touch overlay (#tn-touch) is baked in here so future exports keep
+     it (it used to be patched into index.html after every export).
+     NOTE: the literal filenames index.png / index.icon.png /
+     index.apple-touch-icon.png assume the export path stays web/index.html
+     (executable name "index"). GODOT_THREADS_ENABLED=false matches the
+     no-threads web preset. -->
 <html lang="en">
 	<head>
 		<meta charset="utf-8">
@@ -16,10 +35,17 @@ body {
 	background-color: black;
 	overflow: hidden;
 	touch-action: none;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	min-height: 100vh;
 }
 
 #canvas {
 	display: block;
+	width: min(100vw, calc(100vh * 16 / 9));
+	height: auto;
+	max-height: 100vh;
 }
 
 #canvas:focus {
@@ -103,7 +129,7 @@ body {
 
 	</head>
 	<body>
-		<canvas id="canvas">
+		<canvas id="canvas" width="1280" height="720">
 			Your browser does not support the canvas tag.
 		</canvas>
 
@@ -119,7 +145,7 @@ body {
 
 		<script src="index.js"></script>
 		<script>
-const GODOT_CONFIG = {"args":[],"canvasResizePolicy":2,"ensureCrossOriginIsolationHeaders":true,"executable":"index","experimentalVK":false,"fileSizes":{"index.pck":85680064,"index.wasm":35376909},"focusCanvas":true,"gdextensionLibs":[]};
+const GODOT_CONFIG = {"args":[],"canvasResizePolicy":0,"ensureCrossOriginIsolationHeaders":true,"executable":"index","experimentalVK":false,"fileSizes":{"index.pck":85680384,"index.wasm":35376909},"focusCanvas":true,"gdextensionLibs":[]};
 const GODOT_THREADS_ENABLED = false;
 const engine = new Engine(GODOT_CONFIG);
 
@@ -281,4 +307,5 @@ const engine = new Engine(GODOT_CONFIG);
 </script>
 	</body>
 </html>
+
 
