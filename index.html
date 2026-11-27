@@ -145,7 +145,7 @@ body {
 
 		<script src="index.js"></script>
 		<script>
-const GODOT_CONFIG = {"args":[],"canvasResizePolicy":0,"ensureCrossOriginIsolationHeaders":true,"executable":"index","experimentalVK":false,"fileSizes":{"index.pck":85807312,"index.wasm":35376909},"focusCanvas":true,"gdextensionLibs":[]};
+const GODOT_CONFIG = {"args":[],"canvasResizePolicy":0,"ensureCrossOriginIsolationHeaders":true,"executable":"index","experimentalVK":false,"fileSizes":{"index.pck":85809600,"index.wasm":35376909},"focusCanvas":true,"gdextensionLibs":[]};
 const GODOT_THREADS_ENABLED = false;
 const engine = new Engine(GODOT_CONFIG);
 
@@ -245,6 +245,7 @@ const engine = new Engine(GODOT_CONFIG);
 <button id="tn-show">🎮 Controls</button>
 <div id="tn-touch">
   <div class="tn-top">
+    <button class="tn-pill" id="tn-start" data-tn-key="Escape" data-tn-key2="Enter" data-tn-tap="1">▶ START</button>
     <button class="tn-pill" data-tn-key="Enter" data-tn-tap="1">↻ REMATCH</button>
     <button class="tn-pill" id="tn-hide">HIDE ✕</button>
   </div>
@@ -273,7 +274,7 @@ const engine = new Engine(GODOT_CONFIG);
 <script>
 (function(){
   var canvas = document.getElementById('canvas');
-  var KEY_NAMES = {KeyW:'w',KeyA:'a',KeyS:'s',KeyD:'d',Space:' ',KeyJ:'j',KeyK:'k',KeyL:'l',ShiftLeft:'Shift',KeyR:'r',Enter:'Enter'};
+  var KEY_NAMES = {KeyW:'w',KeyA:'a',KeyS:'s',KeyD:'d',Space:' ',KeyJ:'j',KeyK:'k',KeyL:'l',ShiftLeft:'Shift',KeyR:'r',Enter:'Enter',Escape:'Escape'};
   function sendKey(code, down){
     var ev = new KeyboardEvent(down ? 'keydown' : 'keyup', {
       code: code, key: KEY_NAMES[code] || code, bubbles: true, cancelable: true, composed: true
@@ -285,10 +286,19 @@ const engine = new Engine(GODOT_CONFIG);
   }
   document.querySelectorAll('[data-tn-key]').forEach(function(btn){
     var code = btn.getAttribute('data-tn-key');
+    var code2 = btn.getAttribute('data-tn-key2');
+    // START sends Escape + Enter together: Escape is the game's pause
+    // action (pauses in a fight, resumes when paused), Enter is the
+    // confirm/rematch action (starts on the title, locks in a fighter
+    // or stage on the select screens, rematches at match end). On the
+    // select screens Escape is also "back", but the game's menu code
+    // checks confirm before back, so the same-frame Enter wins and
+    // START confirms instead of backing out.
     var tap = btn.getAttribute('data-tn-tap') === '1';
     function down(e){ e.preventDefault(); btn.classList.add('pressed'); sendKey(code, true);
-      if (tap) { setTimeout(function(){ btn.classList.remove('pressed'); sendKey(code, false); }, 150); } }
-    function up(e){ e.preventDefault(); btn.classList.remove('pressed'); if (!tap) sendKey(code, false); }
+      if (code2) sendKey(code2, true);
+      if (tap) { setTimeout(function(){ btn.classList.remove('pressed'); sendKey(code, false); if (code2) sendKey(code2, false); }, 150); } }
+    function up(e){ e.preventDefault(); btn.classList.remove('pressed'); if (!tap) { sendKey(code, false); if (code2) sendKey(code2, false); } }
     btn.addEventListener('pointerdown', down);
     btn.addEventListener('pointerup', up);
     btn.addEventListener('pointercancel', up);
